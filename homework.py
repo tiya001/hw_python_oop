@@ -1,27 +1,27 @@
+from dataclasses import asdict, dataclass
+from typing import Dict, Type
+
+
+@dataclass
 class InfoMessage:
-    def __init__(self,
-                 training_type,
-                 duration: float,
-                 distance: float,
-                 speed: float,
-                 calories: float
-                 ) -> None:
-        self.training_type = training_type
-        self.duration = duration
-        self.distance = distance
-        self.speed = speed
-        self.calories = calories
+
+    training_type: str
+    duration: float
+    distance: float
+    speed: float
+    calories: float
+    CONST_MESSAGE: str = ('Тип тренировки: {}; '
+                          'Длительность: {:.3f} ч.; '
+                          'Дистанция: {:.3f} км; '
+                          'Ср. скорость: {:.3f} км/ч; '
+                          'Потрачено ккал: {:.3f}.')
 
     def get_message(self) -> str:
-        return (f'Тип тренировки: {self.training_type}; '
-                f'Длительность: {self.duration:.3f} ч.; '
-                f'Дистанция: {self.distance:.3f} км; '
-                f'Ср. скорость: {self.speed:.3f} км/ч; '
-                f'Потрачено ккал: {self.calories:.3f}.')
+        return (self.CONST_MESSAGE.format(*asdict(self).values()))
 
 
 class Training:
-    """Базовый класс тренировки."""
+
     LEN_STEP: float = 0.65
     M_IN_KM: int = 1000
 
@@ -41,26 +41,30 @@ class Training:
         return self.get_distance() / self.duration
 
     def get_spent_calories(self) -> float:
-        pass
+        raise NotImplementedError
 
     def show_training_info(self) -> InfoMessage:
-        info: InfoMessage = InfoMessage(self.__class__.__name__,
-                                        self.duration,
-                                        self.get_distance(),
-                                        self.get_mean_speed(),
-                                        self.get_spent_calories())
-        return info
+        return (InfoMessage(self.__class__.__name__,
+                            self.duration,
+                            self.get_distance(),
+                            self.get_mean_speed(),
+                            self.get_spent_calories()))
 
 
 class Running(Training):
+    COEFF_CALORIE_1: int = 18
+    COEFF_CALORIE_2: int = 20
+
     def get_spent_calories(self) -> float:
-        COEFF_CALORIE_1: int = 18
-        COEFF_CALORIE_2: int = 20
-        return ((COEFF_CALORIE_1 * self.get_mean_speed() - COEFF_CALORIE_2)
+        return ((self.COEFF_CALORIE_1 * self.get_mean_speed()
+                - self.COEFF_CALORIE_2)
                 * self.weight / self.M_IN_KM * self.duration * 60)
 
 
 class SportsWalking(Training):
+    COEFF_CALORIE_1: float = 0.035
+    COEFF_CALORIE_2: float = 0.029
+
     def __init__(self, action: int,
                  duration: float,
                  weight: float,
@@ -69,15 +73,16 @@ class SportsWalking(Training):
         self.height = height
 
     def get_spent_calories(self) -> float:
-        COEFF_CALORIE_1: float = 0.035
-        COEFF_CALORIE_2: float = 0.029
-        return ((COEFF_CALORIE_1 * self.weight
+
+        return ((self.COEFF_CALORIE_1 * self.weight
                 + (self.get_mean_speed() ** 2 // self.height)
-                * COEFF_CALORIE_2 * self.weight) * self.duration * 60)
+                * self.COEFF_CALORIE_2 * self.weight) * self.duration * 60)
 
 
 class Swimming(Training):
     LEN_STEP: float = 1.38
+    COEFF_CALORIE_1: float = 1.1
+    COEFF_CALORIE_2: int = 2
 
     def __init__(self, action: int, duration: float,
                  weight: float,
@@ -92,23 +97,16 @@ class Swimming(Training):
                 / self.M_IN_KM / self.duration)
 
     def get_spent_calories(self) -> float:
-        COEFF_CALORIE_1: float = 1.1
-        COEFF_CALORIE_2: int = 2
-        return ((self.get_mean_speed() + COEFF_CALORIE_1)
-                * COEFF_CALORIE_2 * self.weight)
+        return ((self.get_mean_speed() + self.COEFF_CALORIE_1)
+                * self.COEFF_CALORIE_2 * self.weight)
 
 
 def read_package(workout_type: str, data: list) -> Training:
-    training_dict = {'SWM': Swimming, 'RUN': Running, 'WLK': SportsWalking}
-    if workout_type == 'SWM':
-        workout_object: Swimming = training_dict[workout_type](
-            data[0], data[1], data[2], data[3], data[4])
-    elif workout_type == 'RUN':
-        workout_object: Running = training_dict[workout_type](
-            data[0], data[1], data[2])
-    else:
-        workout_object: SportsWalking = training_dict[workout_type](
-            data[0], data[1], data[2], data[3])
+    training_dict: Dict[str, Type] = {'SWM': Swimming,
+                                      'RUN': Running,
+                                      'WLK': SportsWalking}
+    workout_object: training_dict[workout_type] = (
+        training_dict[workout_type](*data))
     return workout_object
 
 
