@@ -102,12 +102,11 @@ class Swimming(Training):
 
 
 def read_package(workout_type: str, data: list) -> Training:
-    training_dict: Dict[str, Type] = {'SWM': Swimming,
-                                      'RUN': Running,
-                                      'WLK': SportsWalking}
-    workout_object: training_dict[workout_type] = (
-        training_dict[workout_type](*data))
-    return workout_object
+    training_dict: Dict[str, Type[Training]] = {'SWM': Swimming,
+                                                'RUN': Running,
+                                                'WLK': SportsWalking}
+
+    return training_dict[workout_type](*data)
 
 
 def main(training: Training) -> None:
